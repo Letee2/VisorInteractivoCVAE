@@ -378,7 +378,8 @@ def load_or_train_models(config, data_loaders, dataset_info):
     try:
         # Verificar si ya existen modelos entrenados
         models_trained = models_exist(
-            config['epochs'], 
+            config['epochs'],
+            config['latent_dim'], 
             dataset_name=config['dataset_name'], 
             models_dir=MODELS_DIR
         )
@@ -428,6 +429,7 @@ def load_or_train_models(config, data_loaders, dataset_info):
                     ae_losses, 
                     vae_losses, 
                     config['epochs'],
+                    config['latent_dim'], 
                     dataset_name=config['dataset_name'],
                     input_channels=dataset_info['channels'],
                     input_size=dataset_info['img_size'],
