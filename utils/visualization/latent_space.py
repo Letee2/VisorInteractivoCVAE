@@ -297,7 +297,7 @@ def _interactive_model_tab(model_type, model, embeddings, labels, device, channe
             y=embeddings[:, 1], 
             color=labels.astype(str),
             labels={'x': 'Dimensión 1', 'y': 'Dimensión 2', 'color': 'Clase'},
-            title=f"Espacio Latente del {title} - Haz clic para generar una imagen",
+            title=f"Espacio Latente del {title} - Usa los sliders para generar una imagen",
             color_discrete_sequence=px.colors.qualitative.G10
         )
         
