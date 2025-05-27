@@ -55,6 +55,14 @@ def render_header():
     Explora cómo cada modelo aprende a representar y generar imágenes, y descubre las ventajas y desventajas de cada enfoque.
     """)
 
+    st.warning("""
+    **Nota importante:** Si estás accediendo a esta herramienta desde la nube, es posible que experimentes ciertos retrasos en el entrenamiento de los modelos. 
+    Para facilitar la exploración, se han incluido dos configuraciones preentrenadas para AE y VAE: una con 2 dimensiones y 3 épocas, y otra con 26 dimensiones y 5 épocas (puedes seleccionarlas desde el slider). 
+    Además, te animamos a descargar el código fuente desde el siguiente enlace: [VisorInteractivoCVAE](https://github.com/Letee2/VisorInteractivoCVAE), para poder ejecutarlo localmente y aprovechar el potencial de tu propia GPU.
+    """)
+
+
+
 def render_sidebar():
     """
     Renderizar la barra lateral con opciones de configuración
@@ -65,7 +73,7 @@ def render_sidebar():
     st.sidebar.header("Configuración")
 
     # Selector de dataset
-    dataset_options = ["MNIST", "Fashion MNIST", "CIFAR10", "Cats"]
+    dataset_options = ["MNIST", "Fashion MNIST"]
     DATASET = st.sidebar.selectbox("Dataset:", dataset_options, index=0)
 
     # Convertir el nombre del dataset al formato esperado por las funciones
@@ -78,7 +86,7 @@ def render_sidebar():
     dataset_name = dataset_name_map[DATASET]
 
     # Parámetros globales según el dataset
-    LATENT_DIM = st.sidebar.slider("Dimensión del Espacio Latente:", 2, 512, 2)
+    LATENT_DIM = st.sidebar.slider("Dimensión del Espacio Latente:", 2, 512, 2, step=1)
     BATCH_SIZE = 128
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -545,7 +553,7 @@ def render_visualizations(models_info, config, data_loaders, dataset_info):
                 Aquí puedes ver diferentes formas de generar imágenes a partir del espacio latente.
                 """)
                 
-                if config['latent_dim'] == 2:
+                if config['latent_dim']:
                     # Generación a partir de puntos específicos
                     visualize_grid_generation(
                         ae_model, 

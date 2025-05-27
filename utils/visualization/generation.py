@@ -21,8 +21,8 @@ def visualize_grid_generation(ae_model, vae_model, device, latent_dim=2, channel
         normalize_output: Si True, los datos están normalizados en [-1,1] en lugar de [0,1]
     """
     try:
-        if latent_dim != 2:
-            st.info("La visualización de rejilla solo está disponible para espacios latentes de 2 dimensiones.")
+        if latent_dim >512:
+            st.info("La visualización de rejilla no está disponible para este número de dimensiones.")
             return
             
         st.subheader("Generación a partir de puntos en el espacio latente")
@@ -37,36 +37,56 @@ def visualize_grid_generation(ae_model, vae_model, device, latent_dim=2, channel
     except Exception as e:
         st.error(f"Error en la generación de rejilla: {str(e)}")
 
-def generate_grid_images(ae_model, vae_model, device, latent_dim):
+
+from sklearn.manifold import TSNE
+from scipy.spatial import cKDTree
+
+def generate_grid_images(ae_model, vae_model, device, latent_dim, n_samples=25):
     """
-    Genera imágenes a partir de una rejilla de puntos en el espacio latente
+    Genera imágenes a partir de puntos en el espacio latente.
+    Si latent_dim==2, se usa una rejilla regular en [-3, 3].
+    Si latent_dim>2, se usan puntos aleatorios proyectados con t-SNE y ordenados en rejilla.
     
-    Args:
-        ae_model: Modelo Autoencoder entrenado
-        vae_model: Modelo VAE entrenado
-        device: Dispositivo (CPU/GPU)
-        latent_dim: Dimensión del espacio latente
-        
     Returns:
-        tuple: (grid_points, ae_generated, vae_generated)
+        grid_coords: Coordenadas 2D de visualización
+        ae_generated: Imágenes generadas por AE
+        vae_generated: Imágenes generadas por VAE
     """
-    # Crear rejilla de puntos en el espacio latente
-    x = np.linspace(-3, 3, 5)
-    y = np.linspace(-3, 3, 5)
-    grid_x, grid_y = np.meshgrid(x, y)
-    grid_points = np.column_stack((grid_x.flatten(), grid_y.flatten()))
-    
-    # Generar imágenes desde rejilla
+    if latent_dim == 2:
+        # Rejilla 2D regular
+        x = np.linspace(-3, 3, 5)
+        y = np.linspace(-3, 3, 5)
+        grid_x, grid_y = np.meshgrid(x, y)
+        grid_points = np.column_stack((grid_x.flatten(), grid_y.flatten()))
+        display_coords = grid_points
+    else:
+        # Generar puntos aleatorios en espacio latente
+        grid_points = np.random.randn(n_samples, latent_dim)
+
+        # t-SNE para proyectar a 2D
+        tsne = TSNE(n_components=2, perplexity=5, random_state=42)
+        tsne_proj = tsne.fit_transform(grid_points)
+
+        # Rejilla uniforme 2D en misma región que t-SNE
+        x = np.linspace(tsne_proj[:, 0].min(), tsne_proj[:, 0].max(), int(n_samples**0.5))
+        y = np.linspace(tsne_proj[:, 1].min(), tsne_proj[:, 1].max(), int(n_samples**0.5))
+        grid_x, grid_y = np.meshgrid(x, y)
+        grid_coords = np.column_stack((grid_x.flatten(), grid_y.flatten()))
+
+        # Asignar puntos t-SNE a rejilla más cercana
+        tree = cKDTree(tsne_proj)
+        _, indices = tree.query(grid_coords)
+        grid_points = grid_points[indices]
+        display_coords = grid_coords
+
     with torch.no_grad():
-        # Autoencoder
-        ae_grid_tensor = torch.FloatTensor(grid_points).to(device)
-        ae_generated = ae_model.decode(ae_grid_tensor).cpu()
-        
-        # VAE
-        vae_grid_tensor = torch.FloatTensor(grid_points).to(device)
-        vae_generated = vae_model.decode(vae_grid_tensor).cpu()
-    
-    return grid_points, ae_generated, vae_generated
+        ae_tensor = torch.FloatTensor(grid_points).to(device)
+        ae_generated = ae_model.decode(ae_tensor).cpu()
+
+        vae_tensor = torch.FloatTensor(grid_points).to(device)
+        vae_generated = vae_model.decode(vae_tensor).cpu()
+
+    return display_coords, ae_generated, vae_generated
 
 def display_grid_images(ae_generated, vae_generated, channels, normalize_output):
     """
